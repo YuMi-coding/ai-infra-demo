@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+uvicorn /workspace/ai-infra-demo/server.app:app --host 0.0.0.0 --port 8000

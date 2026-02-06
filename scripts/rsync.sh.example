@@ -1,0 +1,2 @@
+# Synchronize the local folder to remote
+rsync -avz --delete --exclude ".venv/" --exclude "__pycache__/" --exclude ".git/"   -e "ssh -p 15545 -i ~/.ssh/id_ed25519"   ~/projects/ai-infra-demo/   root@<remote-ip>:/workspace/ai-infra-demo/
