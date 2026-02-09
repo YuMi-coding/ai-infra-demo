@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PID_FILE=/workspace/logs/uvicorn.pid
+if [[ -f "$PID_FILE" ]]; then
+  pid=$(cat "$PID_FILE")
+  kill -TERM "$pid" || true
+  # wait a moment, then force if still alive
+  sleep 2
+  kill -0 "$pid" 2>/dev/null && kill -9 "$pid" || true
+  rm -f "$PID_FILE"
+fi
+
+# if vLLM engine is still lingering for any reason:
+pkill -f "VLLM::Eng" || true
+pkill -f "uvicorn server.app:app" || true

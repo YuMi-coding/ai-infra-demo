@@ -1,8 +1,7 @@
 # server/answer.py
 from __future__ import annotations
 from dataclasses import dataclass
-import re
-import torch
+import re, torch, gc
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
@@ -66,3 +65,20 @@ class AnswerEngine:
         # cleanup
         ans = re.sub(r"\s+", " ", ans).strip()
         return ans
+
+    def close(self) -> None:
+        # Move model off GPU, drop references, and flush CUDA cache.
+        try:
+            self.model.to("cpu")
+        except Exception:
+            pass
+        try:
+            del self.model
+        except Exception:
+            pass
+        try:
+            del self.tokenizer
+        except Exception:
+            pass
+        gc.collect()
+        torch.cuda.empty_cache()

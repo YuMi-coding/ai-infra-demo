@@ -2,21 +2,51 @@ from fastapi import FastAPI, Response
 from pydantic import BaseModel
 from vllm import LLM, SamplingParams
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-import time
+import time, gc, torch
 
 from server.answer import AnswerEngine, AnswerConfig
 
 REQS = Counter("http_requests_total", "Total number of HTTP requests", ["path", "status"])
 LAT = Histogram("http_request_latency_seconds", "Latency of HTTP requests in seconds", ["path"])
 
+llm: LLM | None = None
+engine: AnswerEngine | None = None
+
 app = FastAPI()
 
-llm = LLM(
-    model="facebook/opt-125m",
-    gpu_memory_utilization=0.75,
-)
+@app.on_event("startup")
+def _startup():
+    global llm, engine
+    llm = LLM(
+        model="facebook/opt-125m",
+        gpu_memory_utilization=0.75,
+        enable_sleep_mode=True,   # important: allows llm.sleep() to actually free VRAM :contentReference[oaicite:0]{index=0}
+    )
+    engine = AnswerEngine(AnswerConfig())
 
-engine = AnswerEngine(AnswerConfig())
+@app.on_event("shutdown")
+def _shutdown():
+    global llm, engine
+
+    # 1) Stop/free vLLM
+    if llm is not None:
+        try:
+            # releases most GPU memory (weights + KV) when sleep mode is enabled :contentReference[oaicite:1]{index=1}
+            llm.sleep(level=2)
+        except Exception:
+            pass
+        llm = None
+
+    # 2) Stop/free Transformers engine
+    if engine is not None:
+        try:
+            engine.close()
+        except Exception:
+            pass
+        engine = None
+
+    gc.collect()
+    torch.cuda.empty_cache()
 
 class Req(BaseModel):
     question: str
