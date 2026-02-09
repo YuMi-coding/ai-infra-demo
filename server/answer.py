@@ -23,7 +23,7 @@ class AnswerEngine:
         self.model = AutoModelForCausalLM.from_pretrained(
             cfg.model_name,
             torch_dtype=torch.float16,
-        ).to("cpu")
+        ).to("cuda")
         self.model.eval()
 
         # OPT tokenizers sometimes have no pad_token set; safe default to eos.
@@ -40,7 +40,7 @@ class AnswerEngine:
         )
     def answer(self, question: str, max_new_tokens: int | None = None) -> str:
         prompt = self._build_prompt(question)
-        enc = self.tokenizer(prompt, return_tensors="pt").to("cpu")
+        enc = self.tokenizer(prompt, return_tensors="pt").to("cuda")
 
         max_new = max_new_tokens if max_new_tokens is not None else self.cfg.max_new_tokens
 
@@ -56,11 +56,9 @@ class AnswerEngine:
                 eos_token_id=self.tokenizer.eos_token_id,
             )
 
-        # ✅ decode only newly-generated tokens (prevents prompt echo)
         gen_ids = out[0][enc["input_ids"].shape[1]:]
         ans = self.tokenizer.decode(gen_ids, skip_special_tokens=True).strip()
 
-        # ✅ hard-stop if it starts another Q/A pattern
         for stop in ["\nQ:", "\nQuestion:", " Q:", " Question:"]:
             if stop in ans:
                 ans = ans.split(stop, 1)[0].strip()
