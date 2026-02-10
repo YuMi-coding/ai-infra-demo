@@ -48,18 +48,22 @@ def _shutdown():
     gc.collect()
     torch.cuda.empty_cache()
 
-class Req(BaseModel):
+class InferReq(BaseModel):
+    prompt: str
+    max_tokens: int | None = None
+
+class AnswerReq(BaseModel):
     question: str
     max_tokens: int | None = None
 
 @app.post("/infer")
-def infer(req: Req):
+def infer(req: InferReq):
     path = "/infer"
     start = time.time()
     status = 200
     try:
         params = SamplingParams(max_tokens=req.max_tokens or 64)
-        outputs = llm.generate([req.question], params)
+        outputs = llm.generate([req.prompt], params)
         latency = time.time() - start
         return {
             "text": outputs[0].outputs[0].text,
@@ -78,7 +82,7 @@ def health():
     return {"ok": True}
 
 @app.post("/answer")
-def answer(req: Req):
+def answer(req: AnswerReq):
     path = "/answer"
     start = time.time()
     status = 200
