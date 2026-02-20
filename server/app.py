@@ -19,7 +19,7 @@ app = FastAPI()
 def _startup():
     global llm, engine
     llm = LLM(
-        model="meta-llama/Meta-Llama-3-8B-Instruct",
+        model="facebook/opt-125m",
         gpu_memory_utilization=0.6, # Changed per suggestion in PagedAttention
         enable_sleep_mode=True,   # important: allows llm.sleep() to actually free VRAM :contentReference[oaicite:0]{index=0}
     )
