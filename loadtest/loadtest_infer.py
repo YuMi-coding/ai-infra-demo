@@ -45,7 +45,7 @@ async def run(concurrency=4, total=40, warmup=10, max_tokens=16):
 
         async def task(record: bool):
             async with sem:
-                dt = await one(client)
+                dt = await one(client, max_tokens=max_tokens)
                 if record:
                     times.append(dt)
         if warmup > 0:

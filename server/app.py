@@ -2,13 +2,14 @@ from fastapi import FastAPI, Response
 from pydantic import BaseModel
 from vllm import LLM, SamplingParams
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-import time, gc, torch
+import time, gc, torch, asyncio
 
 from server.answer import AnswerEngine, AnswerConfig
 
 REQS = Counter("http_requests_total", "Total number of HTTP requests", ["path", "status"])
 LAT = Histogram("http_request_latency_seconds", "Latency of HTTP requests in seconds", ["path"])
 
+LLM_LOCK = asyncio.Lock()
 llm: LLM | None = None
 engine: AnswerEngine | None = None
 
@@ -19,7 +20,7 @@ def _startup():
     global llm, engine
     llm = LLM(
         model="facebook/opt-125m",
-        gpu_memory_utilization=0.75,
+        gpu_memory_utilization=0.6, # Changed per suggestion in PagedAttention
         enable_sleep_mode=True,   # important: allows llm.sleep() to actually free VRAM :contentReference[oaicite:0]{index=0}
     )
     engine = AnswerEngine(AnswerConfig())
@@ -57,13 +58,14 @@ class AnswerReq(BaseModel):
     max_tokens: int | None = None
 
 @app.post("/infer")
-def infer(req: InferReq):
+async def infer(req: InferReq):
     path = "/infer"
     start = time.time()
     status = 200
     try:
-        params = SamplingParams(max_tokens=req.max_tokens or 64)
-        outputs = llm.generate([req.prompt], params)
+        async with LLM_LOCK:
+            params = SamplingParams(max_tokens=req.max_tokens or 64)
+            outputs = llm.generate([req.prompt], params)
         latency = time.time() - start
         return {
             "text": outputs[0].outputs[0].text,
