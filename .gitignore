@@ -208,3 +208,6 @@ __marimo__/
 
 # scripts that should be redacted
 scripts/*.sh
+
+report/*csv
+.vscode/
