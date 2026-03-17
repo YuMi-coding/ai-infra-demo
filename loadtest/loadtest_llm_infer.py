@@ -11,8 +11,9 @@ parser.add_argument("--sweep", action="store_true", help="Run a sweep over conc/
 
 
 
-URL = "http://localhost:8000/v1/completions"
-MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
+URL = "http://localhost:8080/v1/chat/completions" # -> 8080 for proxy, 8000 for native server
+MODEL = "meta-llama/Llama-3.1-8B-Instruct"
+# MODEL = "facebook/opt-125m"
 # PAYLOAD = {"prompt": "Hello AI infrastructure", "max_tokens": 64}
 PROMPT = "What does AI infrastructure mean?"
 
@@ -32,7 +33,9 @@ async def one(client, max_tokens: int):
         URL,
         json={
             "model": MODEL,
-            "prompt": PROMPT,
+            "messages": [
+                {"role": "user", "content": PROMPT}
+            ],
             "max_tokens": max_tokens,
             "temperature": 0.0,
         },

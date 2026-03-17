@@ -1,8 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd /workspace/ai-infra-demo
+source .venv/bin/activate
+export HF_HOME=/workspace/hf_cache
+export HF_TOKEN=hf_XXXXXXXXXX
+export TRANSFORMERS_CACHE=/workspace/hf_cache
+mkdir -p /workspace/logs /workspace/hf_cache
 echo "Running VLLM directly for the API server"
 python -m vllm.entrypoints.openai.api_server \
-  --model "facebook/opt-125m" \
+  --model meta-llama/Llama-3.1-8B-Instruct \
   --host 0.0.0.0 \
   --port 8000 \
   --dtype float16 \
-  --gpu-memory-utilization 0.4 \
-  --max-model-len 1024
+  --gpu-memory-utilization 0.60 \
+  --max-model-len 512 \
+  --max-num-seqs 256 \
+  --max-num-batched-tokens 8192 \
+  --disable-log-requests
+
+echo $! > /workspace/logs/vllm.pid
+echo "Started uvicorn pid=$(cat /workspace/logs/vllm.pid)"
