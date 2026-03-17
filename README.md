@@ -245,7 +245,7 @@ This repo is still in active development. At the current stage:
 - [ ] Package the workflow more cleanly for repeatable deployment
 - [ ] Extend to Kubernetes and autoscaling experiments
 
-## What this repo is meant to show on a resume
+## What this repo is meant to show
 
 This project is meant to demonstrate practical AI infrastructure capability in areas such as:
 
